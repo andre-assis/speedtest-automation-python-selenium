@@ -1,3 +1,5 @@
+import logging
+import logging.config
 from selenium import webdriver
 import time
 from selenium.webdriver.chrome.options import Options
@@ -12,10 +14,46 @@ from email import encoders
 from email.message import EmailMessage
 import os
 
+logging_config = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '%(asctime)s [%(levelname)s] %(message)s',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'standard',
+        },
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'formatter': 'standard',
+            'filename': 'internet_speed_test.log',
+            'mode': 'a',
+        },
+    },
+    'root': {
+        'level': 'INFO',
+        'handlers': ['console', 'file'],
+    },
+}
+
+logging.config.dictConfig(logging_config)
+logger = logging.getLogger()
+
+
 chrome_options = Options()
+chrome_options.add_argument('--ignore-certificate-errors')
+chrome_options.add_argument('--ignore-ssl-errors')
+chrome_options.add_argument('log-level=4')
 driver = webdriver.Chrome(options=chrome_options)
 
 def realizar_teste():
+    logging.info('Realizando teste de velocidade (aguarde)...')
     driver.get('https://www.speedtest.net/')
 
     # Clicar no botão de iniciar teste
@@ -34,6 +72,8 @@ def realizar_teste():
 
 def salvar_resultado(download_speed, upload_speed, ping):
     
+    logging.info('Salvando o resultado do teste na planilha...')
+
     data = {
         'Data e Hora': [datetime.datetime.now()],
         'Download (Mbps)': [download_speed],
@@ -47,6 +87,8 @@ def salvar_resultado(download_speed, upload_speed, ping):
     df.to_csv('resultado_teste_velocidade.csv', mode='a', header=not pd.io.common.file_exists('resultado_teste_velocidade.csv'), index=False)
 
 def enviar_email():
+    logging.info('Enviando o resultado para o seu email...')
+
     com_anexo = './resultado_teste_velocidade.csv'
     email_de = "andrepinto.cg@gmail.com"
     email_destino = "andrepinto.cg@gmail.com"
@@ -89,10 +131,12 @@ def enviar_email():
     
 def main():
     try:
+        logging.info('Acessando o site...')
         download_speed, upload_speed, ping = realizar_teste()
         salvar_resultado(download_speed, upload_speed, ping)
         enviar_email()
     finally:
+        logging.info('Email enviado.')
         driver.quit()
 
 if __name__ == '__main__':
