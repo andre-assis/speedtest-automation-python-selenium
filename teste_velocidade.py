@@ -7,6 +7,7 @@ from selenium.webdriver.common.by import By
 import pandas as pd
 import datetime
 import smtplib
+import schedule
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -134,10 +135,13 @@ def main():
         logging.info('Acessando o site...')
         download_speed, upload_speed, ping = realizar_teste()
         salvar_resultado(download_speed, upload_speed, ping)
-        enviar_email()
+        # enviar_email()
     finally:
-        logging.info('Email enviado.')
+        # logging.info('Email enviado.')
         driver.quit()
+        
+schedule.every().hour.do(main)
+schedule.every().day.at("23:59").do(enviar_email)
 
 if __name__ == '__main__':
     main()
